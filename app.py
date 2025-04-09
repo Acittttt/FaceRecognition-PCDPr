@@ -81,7 +81,8 @@ def tampilkan_halaman_utama():
             with st.spinner("Sedang mengklasifikasikan..."):
                 klasifikasi = load_klasifikasi_model()
                 predicted_class, class_probabilities, confidence = klasifikasi.predict_from_image(image)
-            
+                if isinstance(class_probabilities, np.ndarray):
+                    class_probabilities = dict(zip(klasifikasi.label_classes, class_probabilities))
             # Tampilkan hasil
             st.success(f"Hasil Klasifikasi: {predicted_class}")
             st.info(f"Tingkat Keyakinan: {confidence:.2%}")

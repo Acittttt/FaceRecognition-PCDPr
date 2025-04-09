@@ -27,4 +27,8 @@ class KlasifikasiSuku:
         predicted_idx = np.argmax(probabilities)
         predicted_class = self.label_classes[predicted_idx]
         confidence = float(probabilities[predicted_idx])
-        return predicted_class, probabilities, confidence
+
+        # KONVERSI ke dictionary
+        class_probabilities = dict(zip(self.label_classes, probabilities))
+
+        return predicted_class, class_probabilities, confidence
