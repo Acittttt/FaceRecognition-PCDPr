@@ -11,7 +11,7 @@ from src.visualisasi_hasil import VisualisasiHasil
 # Inisialisasi model dan visualisasi
 @st.cache_resource
 def load_klasifikasi_model():
-    return KlasifikasiSuku(model_path='models/model_klasifikasi_suku_finetuned.h5', 
+    return KlasifikasiSuku(model_path='models/model_klasifikasi_suku.h5', 
                           label_path='models/label_encoder_classes.npy')
 
 visualisasi = VisualisasiHasil()
