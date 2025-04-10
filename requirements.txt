@@ -11,3 +11,5 @@ pympler==1.0.1
 tzlocal==4.3
 joblib==1.3.2
 threadpoolctl==3.6.0
+face_recognition
+pickle-mixin
