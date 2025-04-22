@@ -69,57 +69,82 @@ def main():
     else:
         tampilkan_dataset()
 
-# --- Face Similarity (uses FacePreprocessor) ---
+# --- Face Similarity (Kemiripan Wajah) ---
 def tampilkan_face_similarity():
     st.header("Face Similarity (Kemiripan Wajah)")
     st.write("Unggah gambar untuk membandingkan dengan embeddings dataset.")
-    data = load_embeddings()
+    
+    data = load_embeddings()           # memuat embeddings + paths
+    detector  = load_face_detector()
+    predictor = load_landmark_predictor(
+                   "models/shape_predictor_68_face_landmarks.dat")
 
-    # Initialize FacePreprocessor
-    detector = load_face_detector()
-    predictor = load_landmark_predictor("models/shape_predictor_68_face_landmarks.dat")
     pre = FacePreprocessor(
-        target_size=(224,224),
+        target_size=(224, 224),
         face_detector=detector,
         landmark_predictor_path="models/shape_predictor_68_face_landmarks.dat"
     )
 
-    uploaded = st.file_uploader("Pilih Gambar", type=["jpg","jpeg","png"], key="facesim")
+    uploaded = st.file_uploader("Pilih Gambar",
+                                type=["jpg", "jpeg", "png"],
+                                key="facesim")
     if not uploaded:
         return
+
     arr = np.frombuffer(uploaded.read(), np.uint8)
-    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-    if img is None:
+    img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img_bgr is None:
         st.error("Gagal membaca gambar!")
         return
-    st.image(img, caption="Gambar Asli", use_container_width=True)
+    st.image(img_bgr, caption="Gambar Asli", use_container_width=True)
 
-    with st.spinner("Memproses wajah, mohon tunggu..."):
-        faces = pre.detect_face(img)
-        st.write(f"Jumlah wajah terdeteksi: {len(faces)}")
-        st.write("")  # blank line
-        for i, face_rect in enumerate(faces):
-            top, right, bottom, left = face_rect.top(), face_rect.right(), face_rect.bottom(), face_rect.left()
-            emb = extract_face_embedding(img, (top, right, bottom, left))
-            if not emb:
-                continue
-            inp = emb[0]
-            dists = [euclidean_distance(inp, e) for e in data['embeddings']]
-            md, mi = min(dists), np.argmin(dists)
-            match = md < 0.6
-            score = compute_similarity_score(md, 0.6)
-            name = data['names'][mi] if match else "Unknown"
-            eth = data['ethnicities'][mi] if match else "-"
-            # Print formatted result
-            st.write(f"Wajah ke-{i+1}:")
-            st.write(f"Nama={eth}")
-            st.write(f"Etnis={name}")
-            st.write(f"Distance={md:.2f}")
-            st.write(f"Score={score:.2f}")
-            # Draw box and label on image
-            cv2.rectangle(img, (left, top), (right, bottom), (0,255,0), 2)
-            cv2.putText(img, name, (left, top-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
-        st.image(img, caption="Hasil Face Similarity", use_container_width=True)
+    with st.spinner("Mendeteksi wajah…"):
+        faces = pre.detect_face(img_bgr)
+
+    st.write(f"Jumlah wajah terdeteksi: {len(faces)}")
+    if not faces:
+        return
+
+    # ——— Proses setiap wajah ———
+    for i, face_rect in enumerate(faces):
+        t, r, b, l = (face_rect.top(), face_rect.right(),
+                      face_rect.bottom(), face_rect.left())
+
+        emb = extract_face_embedding(img_bgr, (t, r, b, l))
+        if not emb:
+            continue
+        inp = emb[0]
+
+        # hitung jarak ke seluruh embedding dataset
+        dists = [euclidean_distance(inp, e) for e in data["embeddings"]]
+        md, mi = min(dists), int(np.argmin(dists))
+        match  = md < 0.6
+        score  = compute_similarity_score(md, 0.6)
+
+        nama  = data["ethnicities"][mi]        if match else "Unknown"
+        etnis = data["names"][mi]  if match else "-"
+        path_dataset = data["paths"][mi] if match else None   # <— ambil path
+
+        st.markdown(f"""**Wajah ke‑{i+1}**              
+        • **Nama**      : `{nama}`  
+        • **Suku**      : `{etnis}`  
+        • **Distance**  : `{md:.2f}`  
+        • **Score**     : `{score:.2f}`
+        """)
+
+        # tampilkan perbandingan dua gambar
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(cv2.cvtColor(img_bgr[t:b, l:r], cv2.COLOR_BGR2RGB),
+                     caption="Face Upload", use_container_width=True)
+        with col2:
+            if path_dataset and os.path.exists(path_dataset):
+                ds_img = cv2.imread(path_dataset)
+                st.image(cv2.cvtColor(ds_img, cv2.COLOR_BGR2RGB),
+                         caption=f"Dataset Match\n{os.path.basename(path_dataset)}",
+                         use_container_width=True)
+            else:
+                st.info("Tidak ada match di dataset.")
 
 # --- Ethnicity Classification ---
 def tampilkan_halaman_utama():

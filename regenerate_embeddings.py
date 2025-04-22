@@ -22,7 +22,8 @@ def regenerate_embeddings(dataset_dir='dataset', output_file='embeddings.pkl'):
     data = {
         'names': [],
         'ethnicities': [],
-        'embeddings': []
+        'embeddings': [],
+        'paths' : []
     }
     
     # Iterasi untuk setiap folder etnis
@@ -66,6 +67,7 @@ def regenerate_embeddings(dataset_dir='dataset', output_file='embeddings.pkl'):
                     data['names'].append(person)
                     data['ethnicities'].append(ethnicity)
                     data['embeddings'].append(embedding)
+                    data['paths'      ].append(image_path)
                     
                     print(f"Processed {image_path}")
     
